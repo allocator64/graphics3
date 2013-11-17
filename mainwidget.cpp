@@ -1,8 +1,9 @@
+#define _USE_MATH_DEFINES
 #include "mainwidget.h"
 
 #include <QMouseEvent>
 
-#include <math.h>
+#include <cmath>
 #include <locale.h>
 
 MainWidget::MainWidget(QWidget *parent) :
@@ -10,7 +11,7 @@ MainWidget::MainWidget(QWidget *parent) :
     angularSpeed(0)
 {
 }
-*
+
 MainWidget::~MainWidget()
 {
     deleteTexture(cube_texture);
@@ -47,6 +48,62 @@ void MainWidget::mouseReleaseEvent(QMouseEvent *e)
 //! [1]
 void MainWidget::timerEvent(QTimerEvent *)
 {
+    for (std::unordered_set<int>::iterator i = keys.begin(); i != keys.end(); ++i)
+        qDebug() << *i;
+    qDebug() << "\n";
+    const float delta = 0.2;
+    const float alpha = 0.05;
+    QVector3D direct(
+                std::cos(camera_direct.y()) * std::sin(camera_direct.x()),
+                std::sin(camera_direct.y()),
+                -std::cos(camera_direct.y()) * std::cos(camera_direct.x()));
+    direct.normalize();
+    if (keys.count(Qt::Key_W)) {
+        camera_pos += direct * delta;
+    }
+
+    if (keys.count(Qt::Key_S)) {
+        camera_pos -= direct * delta;
+    }
+
+    if (keys.count(Qt::Key_D)) {
+        QVector3D d = QVector3D::normal(direct, direct + QVector3D(0, 1, 0));
+        camera_pos += d * delta;
+    }
+
+    if (keys.count(Qt::Key_A)) {
+        QVector3D d = QVector3D::normal(direct, direct + QVector3D(0, 1, 0));
+        camera_pos -= d * delta;
+    }
+
+
+    if (keys.count(Qt::Key_Up)) {
+        float lim = static_cast<float>(M_PI / 2.0 - M_PI / 100.0);
+        camera_direct.setY(std::min(std::max(camera_direct.y() + alpha, -lim), lim));
+    }
+
+    if (keys.count(Qt::Key_Down)) {
+        float lim = static_cast<float>(M_PI / 2.0 - M_PI / 100.0);
+        camera_direct.setY(std::min(std::max(camera_direct.y() - alpha, -lim), lim));
+    }
+
+    if (keys.count(Qt::Key_Left)) {
+        camera_direct.setX(camera_direct.x() - alpha);
+        if (camera_direct.x() < -M_PI)
+            camera_direct += QVector2D(2*M_PI, 0);
+        if (camera_direct.x() > M_PI)
+            camera_direct -= QVector2D(2*M_PI, 0);
+    }
+
+    if (keys.count(Qt::Key_Right)) {
+        camera_direct.setX(camera_direct.x() + alpha);
+        if (camera_direct.x() < -M_PI)
+            camera_direct += QVector2D(2*M_PI, 0);
+        if (camera_direct.x() > M_PI)
+            camera_direct -= QVector2D(2*M_PI, 0);
+    }
+
+
     // Decrease angular speed (friction)
     angularSpeed *= 0.99;
 
@@ -58,8 +115,8 @@ void MainWidget::timerEvent(QTimerEvent *)
         rotation = QQuaternion::fromAxisAndAngle(rotationAxis, angularSpeed) * rotation;
 
         // Update scene
-        updateGL();
     }
+    updateGL();
 }
 //! [1]
 
@@ -134,9 +191,17 @@ void MainWidget::initTextures()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
-//! [4]
 
-//! [5]
+void MainWidget::keyPressEvent(QKeyEvent *key)
+{
+    keys.insert(key->key());
+}
+
+void MainWidget::keyReleaseEvent(QKeyEvent *key)
+{
+    keys.erase(key->key());
+}
+
 void MainWidget::resizeGL(int w, int h)
 {
     // Set OpenGL viewport to cover whole widget
@@ -146,7 +211,7 @@ void MainWidget::resizeGL(int w, int h)
     qreal aspect = qreal(w) / qreal(h ? h : 1);
 
     // Set near plane to 3.0, far plane to 7.0, field of view 45 degrees
-    const qreal zNear = 3.0, zFar = 7.0, fov = 45.0;
+    const qreal zNear = 0.0001, zFar = 1000000.0, fov = 45.0;
 
     // Reset projection
     projection.setToIdentity();
@@ -169,18 +234,22 @@ void MainWidget::paintGL()
     QMatrix4x4 matrix_normal;
     matrix_normal.rotate(rotation);
 
+    QMatrix4x4 camera_rot;
+    camera_rot.rotate(-camera_direct.y() / M_PI * 180, 1, 0, 0);
+    camera_rot.rotate(camera_direct.x() / M_PI * 180, 0, 1, 0);
+
     // Set modelview-projection matrix
-    program.setUniformValue("projection_matrix", projection);
+    program.setUniformValue("projection_matrix", projection * camera_rot);
     program.setUniformValue("model_view_matrix", matrix);
     program.setUniformValue("normal_matrix", matrix_normal);
 
     // Use texture unit 0 which contains cube.png
-//    glActiveTexture(GL_TEXTURE0);
-//    glBindTexture(GL_TEXTURE_2D, sphere_texture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, sphere_texture);
     program.setUniformValue("texture", 0);
 
-    program.setUniformValue("eyePos", QVector4D(0, 0, 0, 1.0));
-    program.setUniformValue("lightPos", QVector4D(5.0, 0, 0, 1.0));
+    program.setUniformValue("eyePos", QVector4D(camera_pos, 0));
+    program.setUniformValue("lightPos", QVector4D(5, 0, 0, 1));
 
     // Draw cube geometry
 //    one_cube.drawCubeGeometry(&program);

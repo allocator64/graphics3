@@ -25,7 +25,7 @@ varying	vec3 n;
 void main()
 {
     // Calculate vertex position in screen space
-    gl_Position = projection_matrix * model_view_matrix * a_position;
+    gl_Position = projection_matrix * (model_view_matrix * a_position - eyePos);
 
     vec3 p = vec3      ( model_view_matrix * a_position );      // transformed point to world space
 
