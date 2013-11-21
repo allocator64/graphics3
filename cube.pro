@@ -1,5 +1,7 @@
 QT       += core gui widgets
 
+CXX_FLAGS += -std=c++11
+
 TARGET = cube
 TEMPLATE = app
 

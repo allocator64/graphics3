@@ -45,44 +45,44 @@ void SphereEngine::initSphereGeometry()
 //    const int count = 10;
 //    const float r = 1;
 //    const float d_teta = M_PI / count;
-//    const float d_ksi = 2 * M_PI / count;
+//    const float d_ksi = 2*M_PI / count;
 
 //    for (float teta = 0; teta <= M_PI; teta += d_teta)
-//        for (float ksi = 0; ksi <= 2 * M_PI; ksi += d_ksi) {
+//        for (float ksi = 0; ksi <= 2*M_PI; ksi += d_ksi) {
 //            VertexData data;
 //            data.position = QVector3D(
-//                        r * sin(teta) * cos(ksi),
-//                        r * sin(teta) * sin(ksi),
-//                        r * cos(teta));
+//                        r*sin(teta)*cos(ksi),
+//                        r*sin(teta)*sin(ksi),
+//                        r*cos(teta));
 //            data.texCoord = QVector2D(ksi / 2 / M_PI, teta / M_PI);
 //            data.normal = data.position;
 //            vertices.push_back(data);
 //            qDebug() << data.position;
 //        }
-    const int count = 30;
+    const int cnt = 30;
     const float radius = 1;
-    std::vector<VertexData> vertices((2 * count + 1) * (2 * count + 1));
+    std::vector<VertexData> vertices((2*cnt + 1)*(2*cnt + 1));
     std::vector<GLushort> indices;
 
-    for (int i = -count; i <= count; ++i) {
-        float rad = radius;
-        float ksi = static_cast<float>(i) / count * M_PI / 2.0;
-        float y = std::sinf(ksi) * rad;
-        for (int j = 0; j <= 2 * count; ++j) {
-            float phi = static_cast<float>(j) / count * M_PI;
-            float x = std::cosf(ksi) * sinf(phi) * rad;
-            float z = -std::cosf(ksi) * cosf(phi) * rad;
-            vertices[(2 * count + 1) * (i + count) + j].position = QVector3D(x, y, z);
-            vertices[(2 * count + 1) * (i + count) + j].normal = QVector3D(x, y, z);
-            vertices[(2 * count + 1) * (i + count) + j].texCoord =
-                                                QVector2D(phi / (2 * M_PI), (ksi + (M_PI / 2.0)) / M_PI);
-            if (i != -count && j != 2 * count) {
-                indices.push_back((2 * count + 1) * (i + count) + j);
-                indices.push_back((2 * count + 1) * (i + count) + (j + 1));
-                indices.push_back((2 * count + 1) * (i + count - 1) + j);
-                indices.push_back((2 * count + 1) * (i + count - 1) + j);
-                indices.push_back((2 * count + 1) * (i + count - 1) + (j + 1));
-                indices.push_back((2 * count + 1) * (i + count) + (j + 1));
+    for (int i = -cnt; i <= cnt; ++i) {
+        float ksi = (.0 + i) / cnt*M_PI / 2.0;
+        float y = std::sin(ksi)*radius;
+        for (int j = 0; j <= 2*cnt; ++j) {
+            float phi = (.0 + j) / cnt*M_PI;
+            float x = std::cos(ksi)*sin(phi)*radius;
+            float z = -std::cos(ksi)*cos(phi)*radius;
+            int idx = (2*cnt + 1)*(i + cnt) + j;
+            int idx2 = (2*cnt + 1)*(i + cnt - 1) + j;
+            vertices[idx].position = QVector3D(x, y, z);
+            vertices[idx].normal = QVector3D(x, y, z);
+            vertices[idx].texCoord = QVector2D(phi/(2*M_PI), (ksi+(M_PI/2.0))/M_PI);
+            if (i != -cnt && j != 2*cnt) {
+                indices.push_back(idx);
+                indices.push_back(idx + 1);
+                indices.push_back(idx2);
+                indices.push_back(idx2);
+                indices.push_back(idx2 + 1);
+                indices.push_back(idx + 1);
             }
         }
     }
@@ -90,12 +90,12 @@ void SphereEngine::initSphereGeometry()
 //! [1]
     // Transfer vertex data to VBO 0
     glBindBuffer(GL_ARRAY_BUFFER, vboIds[0]);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(VertexData), &vertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size()*sizeof(VertexData), &vertices[0], GL_STATIC_DRAW);
 
     // Transfer index data to VBO 1
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIds[1]);
     indices_size = indices.size();
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size * sizeof(GLushort), &indices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size*sizeof(GLushort), &indices[0], GL_STATIC_DRAW);
 //! [1]
 }
 

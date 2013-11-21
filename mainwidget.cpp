@@ -48,9 +48,6 @@ void MainWidget::mouseReleaseEvent(QMouseEvent *e)
 //! [1]
 void MainWidget::timerEvent(QTimerEvent *)
 {
-    for (std::unordered_set<int>::iterator i = keys.begin(); i != keys.end(); ++i)
-        qDebug() << *i;
-    qDebug() << "\n";
     const float delta = 0.2;
     const float alpha = 0.05;
     QVector3D direct(
@@ -179,6 +176,7 @@ void MainWidget::initTextures()
     glEnable(GL_TEXTURE_2D);
 //    cube_texture = bindTexture(QImage(":/cube.png"));
     cube_texture = bindTexture(QImage(":/Earth.png"));
+    qDebug() << QImage(":/Earth.png");
 
     // Set nearest filtering mode for texture minification
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -234,18 +232,18 @@ void MainWidget::paintGL()
     QMatrix4x4 matrix_normal;
     matrix_normal.rotate(rotation);
 
-    QMatrix4x4 camera_rot;
-    camera_rot.rotate(-camera_direct.y() / M_PI * 180, 1, 0, 0);
-    camera_rot.rotate(camera_direct.x() / M_PI * 180, 0, 1, 0);
+    QMatrix4x4 shift_camera;
+    shift_camera.rotate(-camera_direct.y() / M_PI * 180, 1, 0, 0);
+    shift_camera.rotate(camera_direct.x() / M_PI * 180, 0, 1, 0);
 
     // Set modelview-projection matrix
-    program.setUniformValue("projection_matrix", projection * camera_rot);
+    program.setUniformValue("projection_matrix", projection * shift_camera);
     program.setUniformValue("model_view_matrix", matrix);
     program.setUniformValue("normal_matrix", matrix_normal);
 
     // Use texture unit 0 which contains cube.png
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, sphere_texture);
+    glBindTexture(GL_TEXTURE_2D, cube_texture);
     program.setUniformValue("texture", 0);
 
     program.setUniformValue("eyePos", QVector4D(camera_pos, 0));
