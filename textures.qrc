@@ -1,7 +1,6 @@
 <RCC>
     <qresource prefix="/">
-        <file>cube.png</file>
-        <file>Earth.bmp</file>
-		<file>Sun.jpg</file>
+        <file alias="earth">instagram/Earth.bmp</file>
+		<file alias="sun">instagram/theSun.jpg</file>
     </qresource>
 </RCC>

@@ -182,11 +182,11 @@ void MainWidget::initObjects()
     glEnable(GL_TEXTURE_2D);
 //    cube_texture = bindTexture(QImage(":/cube.png"));
     one_sphere.reset(new SphereEngine(2, 30)); //QImage(":/Earth.png"), *this));
-    one_sphere->init(QImage(":/Earth.bmp"), *this);
+    one_sphere->init(QImage(":/earth"), *this);
     one_sphere->_position = QVector3D(10, 0, 0);
 
     theSun.reset(new SphereEngine(5, 30)); //QImage(":/Earth.png"), *this));
-    theSun->init(QImage(":/Sun.jpg"), *this);
+    theSun->init(QImage(":/sun"), *this);
     theSun->_position = QVector3D(0, 0, 0);
 
     // qDebug() << QImage(":/Earth.png");
