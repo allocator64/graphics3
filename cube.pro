@@ -7,6 +7,7 @@ TEMPLATE = app
 
 SOURCES += main.cpp \
     engine.cpp \
+    config.cpp
 #    cubeengine.cpp \
 #    sphereengine.cpp \
 
@@ -32,5 +33,6 @@ simulator: warning(This example might not fully work on Simulator platform)
 
 HEADERS += \
     engine.h \
+    config.h
 #    cubeengine.h \
 #    sphereengine.h \

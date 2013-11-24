@@ -42,3 +42,8 @@ struct SphereEngine : public BaseEngine
 	float const radius;
 	int const cnt;
 };
+
+// struct PlanetEngine : public SphereEngine
+// {
+// 	// unique_ptr<
+// }

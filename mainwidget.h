@@ -13,16 +13,13 @@
 
 #include "engine.h"
 
-class CubeEngine;
-
 class MainWidget : public QGLWidget, protected QGLFunctions
 {
 	Q_OBJECT
 
 public:
 	explicit MainWidget(QWidget *parent = 0);
-	~MainWidget();
-
+	
 protected:
 	void mousePressEvent(QMouseEvent *e);
 	void mouseReleaseEvent(QMouseEvent *e);
@@ -44,9 +41,6 @@ private:
 	QGLShaderProgram programDark;
     std::unique_ptr<SphereEngine> one_sphere;
     std::unique_ptr<SphereEngine> theSun;
-
-	GLuint cube_texture;
-	GLuint sphere_texture;
 
 	std::unordered_set<int> keys;
 

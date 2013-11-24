@@ -1,4 +1,5 @@
 #include "mainwidget.h"
+#include "config.h"
 
 #include <QMouseEvent>
 
@@ -9,12 +10,7 @@ MainWidget::MainWidget(QWidget *parent) :
     QGLWidget(parent),
     angularSpeed(0)
 {
-}
-
-MainWidget::~MainWidget()
-{
-    deleteTexture(cube_texture);
-    deleteTexture(sphere_texture);
+    qDebug() << PlanetConfig::cnf[0].name;
 }
 
 //! [0]
