@@ -6,8 +6,10 @@ TARGET = cube
 TEMPLATE = app
 
 SOURCES += main.cpp \
-    cubeengine.cpp \
-    sphereengine.cpp
+    engine.cpp \
+#    cubeengine.cpp \
+#    sphereengine.cpp \
+
 
 qtHaveModule(opengl) {
     QT += opengl
@@ -29,5 +31,6 @@ INSTALLS += target
 simulator: warning(This example might not fully work on Simulator platform)
 
 HEADERS += \
-    cubeengine.h \
-    sphereengine.h
+    engine.h \
+#    cubeengine.h \
+#    sphereengine.h \
