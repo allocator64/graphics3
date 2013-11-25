@@ -8,7 +8,10 @@
 
 MainWidget::MainWidget(QWidget *parent) :
 	QGLWidget(parent),
-	angularSpeed(0)
+	action(true),
+	deltaTime(1),
+	shiftedTime(QDateTime::currentDateTimeUtc()),
+	prevTime(QDateTime::currentDateTimeUtc())
 {
 	qDebug() << PlanetConfig::cnf[0].name;
 }
@@ -68,10 +71,15 @@ void MainWidget::modifyAngle(float alpha)
 
 }
 
+void MainWidget::changeDeltaTime(float delta)
+{
+	deltaTime = std::max(1.0f, std::min(delta, 60 * 60 * 24 * 365 * 10 + .0f));
+	qDebug() << "new deltaTime: " << deltaTime;
+}
+
 //! [1]
 void MainWidget::timerEvent(QTimerEvent *)
 {
-	float delta = .02;
 	float alpha = .05;
 	QVector3D direct(
 				std::cos(camera_direct.y()) * std::sin(camera_direct.x()),
@@ -82,7 +90,7 @@ void MainWidget::timerEvent(QTimerEvent *)
 	float d = camera_pos.length();
 	for (unsigned idx = 0; idx < planets.size(); ++idx)
 		d = std::min(d, camera_pos.distanceToPoint(planets[idx]->_position));
-	delta = std::max(d / 10, .00002f);
+	float delta = std::max(d / 10, .00002f);
 
 	if (keys.count(Qt::Key_W)) {
 		camera_pos += direct * delta;
@@ -144,15 +152,22 @@ void MainWidget::timerEvent(QTimerEvent *)
 		
 		viewUp(mouse_shift.y() * .01);
 		viewRight(mouse_shift.x() * .01);
-	    QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
+		QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
 	}
 
-    if (keys.count(Qt::Key_Plus))
-    	modifyAngle(1);
-    if (keys.count(Qt::Key_Minus))
-    	modifyAngle(-1);
-    if (keys.count('/'))
-    	modifyAngle(viewAngle - 45);
+	if (keys.count(Qt::Key_Plus))
+		modifyAngle(1);
+	if (keys.count(Qt::Key_Minus))
+		modifyAngle(-1);
+	if (keys.count('/'))
+		modifyAngle(viewAngle - 45);
+
+	if (keys.count(Qt::Key_C))
+		changeDeltaTime(deltaTime * 2);
+	if (keys.count(Qt::Key_Z))
+		changeDeltaTime(deltaTime / 2);
+	if (keys.count(Qt::Key_X))
+		changeDeltaTime(0);
 
 	// // Decrease angular speed (friction)
 	// angularSpeed *= 0.99;
@@ -168,9 +183,11 @@ void MainWidget::timerEvent(QTimerEvent *)
 	// }
 
 	QDateTime now = QDateTime::currentDateTimeUtc();
+	if (action)
+		shiftedTime = shiftedTime.addMSecs(deltaTime * prevTime.msecsTo(now));
 	for (unsigned idx = 0; idx < planets.size(); ++idx)
-		planets[idx]->changeTime(now);
-
+		planets[idx]->changeTime(shiftedTime);
+	prevTime = now;
 	updateGL();
 }
 //! [1]
@@ -260,6 +277,11 @@ void MainWidget::initObjects()
 
 void MainWidget::keyPressEvent(QKeyEvent *key)
 {
+	if (key->key() == Qt::Key_Space) {
+		action = !action;
+		qDebug() << "Action: " << action;
+	}
+
 	keys.insert(key->key());
 }
 

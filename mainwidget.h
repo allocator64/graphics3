@@ -38,6 +38,7 @@ protected:
 	void viewUp(float alpha);
 	void viewRight(float alpha);
 	void modifyAngle(float alpha);
+	void changeDeltaTime(float delta);
 
 private:
 	QBasicTimer timer;
@@ -63,6 +64,11 @@ private:
 	QVector2D mouse_shift;
 	qreal zNear, zFar, viewAngle;
 	qreal aspect;
+	bool action;
+
+	QDateTime shiftedTime;
+	QDateTime prevTime;
+	float deltaTime;
 };
 
 #endif // MAINWIDGET_H
