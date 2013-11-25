@@ -170,5 +170,6 @@ PlanetConfig::Config const PlanetConfig::cnf[PlanetConfig::count] = {
 		-0.040629424,
 		-0.01183482
 	}
-
 };
+
+bool PlanetConfig::modeSurvey = false;

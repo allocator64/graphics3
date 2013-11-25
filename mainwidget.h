@@ -35,6 +35,10 @@ protected:
 	void keyPressEvent(QKeyEvent *key);
 	void keyReleaseEvent(QKeyEvent *key);
 
+	void viewUp(float alpha);
+	void viewRight(float alpha);
+	void modifyAngle(float alpha);
+
 private:
 	QBasicTimer timer;
 	QGLShaderProgram programLight;
@@ -54,6 +58,10 @@ private:
 
 	QVector3D camera_pos;
 	QVector2D camera_direct;
+	bool modeFps;
+	QVector2D mouse_shift;
+	qreal zNear, zFar, viewAngle;
+	qreal aspect;
 };
 
 #endif // MAINWIDGET_H

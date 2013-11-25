@@ -42,4 +42,5 @@ struct PlanetConfig
 	};
 
 	static Config const cnf[count];
+	static bool modeSurvey;
 };

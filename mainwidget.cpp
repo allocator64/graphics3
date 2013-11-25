@@ -7,255 +7,313 @@
 #include <locale.h>
 
 MainWidget::MainWidget(QWidget *parent) :
-    QGLWidget(parent),
-    angularSpeed(0)
+	QGLWidget(parent),
+	angularSpeed(0)
 {
-    qDebug() << PlanetConfig::cnf[0].name;
+	qDebug() << PlanetConfig::cnf[0].name;
 }
 
 //! [0]
 void MainWidget::mousePressEvent(QMouseEvent *e)
 {
-    // Save mouse press position
-    mousePressPosition = QVector2D(e->localPos());
+	// Save mouse press position
+	if (e->button() == Qt::LeftButton)
+		modeFps = true;
+	// mousePressPosition = QVector2D(e->localPos());
 }
 
 void MainWidget::mouseReleaseEvent(QMouseEvent *e)
 {
-    // Mouse release position - mouse press position
-    QVector2D diff = QVector2D(e->localPos()) - mousePressPosition;
+	// // Mouse release position - mouse press position
+	// QVector2D diff = QVector2D(e->localPos()) - mousePressPosition;
 
-    // Rotation axis is perpendicular to the mouse position difference
-    // vector
-    QVector3D n = QVector3D(diff.y(), diff.x(), 0.0).normalized();
+	// // Rotation axis is perpendicular to the mouse position difference
+	// // vector
+	// QVector3D n = QVector3D(diff.y(), diff.x(), 0.0).normalized();
 
-    // Accelerate angular speed relative to the length of the mouse sweep
-    qreal acc = diff.length() / 100.0;
+	// // Accelerate angular speed relative to the length of the mouse sweep
+	// qreal acc = diff.length() / 100.0;
 
-    // Calculate new rotation axis as weighted sum
-    rotationAxis = (rotationAxis * angularSpeed + n * acc).normalized();
+	// // Calculate new rotation axis as weighted sum
+	// rotationAxis = (rotationAxis * angularSpeed + n * acc).normalized();
 
-    // Increase angular speed
-    angularSpeed += acc;
+	// // Increase angular speed
+	// angularSpeed += acc;
+
+	if (e->button() == Qt::LeftButton)
+		modeFps = false;
 }
 //! [0]
+
+void MainWidget::viewUp(float alpha)
+{
+	float lim = M_PI / 2.0 - M_PI / 100.0;
+	camera_direct.setY(std::min(std::max(camera_direct.y() + alpha, -lim), lim));
+}
+
+void MainWidget::viewRight(float alpha)
+{
+	camera_direct.setX(camera_direct.x() + alpha);
+	if (camera_direct.x() < -M_PI)
+		camera_direct += QVector2D(2*M_PI, 0);
+	if (camera_direct.x() > M_PI)
+		camera_direct -= QVector2D(2*M_PI, 0);
+}
+
+void MainWidget::modifyAngle(float alpha)
+{
+	viewAngle = std::min(std::max((float)viewAngle - alpha, 10.0f), 120.0f);
+	projection.setToIdentity();
+	projection.perspective(viewAngle, aspect, zNear, zFar);
+
+}
 
 //! [1]
 void MainWidget::timerEvent(QTimerEvent *)
 {
-    const float delta = 0.02;
-    const float alpha = 0.05;
-    QVector3D direct(
-                std::cos(camera_direct.y()) * std::sin(camera_direct.x()),
-                std::sin(camera_direct.y()),
-                -std::cos(camera_direct.y()) * std::cos(camera_direct.x()));
-    direct.normalize();
-    if (keys.count(Qt::Key_W)) {
-        camera_pos += direct * delta;
-    }
+	float delta = .02;
+	float alpha = .05;
+	QVector3D direct(
+				std::cos(camera_direct.y()) * std::sin(camera_direct.x()),
+				std::sin(camera_direct.y()),
+				-std::cos(camera_direct.y()) * std::cos(camera_direct.x()));
+	direct.normalize();
 
-    if (keys.count(Qt::Key_S)) {
-        camera_pos -= direct * delta;
-    }
+	float d = camera_pos.length();
+	for (unsigned idx = 0; idx < planets.size(); ++idx)
+		d = std::min(d, camera_pos.distanceToPoint(planets[idx]->_position));
+	delta = std::max(d / 10, .00002f);
 
-    if (keys.count(Qt::Key_D)) {
-        QVector3D d = QVector3D::normal(direct, direct + QVector3D(0, 1, 0));
-        camera_pos += d * delta;
-    }
+	if (keys.count(Qt::Key_W)) {
+		camera_pos += direct * delta;
+	}
 
-    if (keys.count(Qt::Key_A)) {
-        QVector3D d = QVector3D::normal(direct, direct + QVector3D(0, 1, 0));
-        camera_pos -= d * delta;
-    }
+	if (keys.count(Qt::Key_S)) {
+		camera_pos -= direct * delta;
+	}
 
+	if (keys.count(Qt::Key_D)) {
+		QVector3D d = QVector3D::normal(direct, direct + QVector3D(0, 1, 0));
+		camera_pos += d * delta;
+	}
 
-    if (keys.count(Qt::Key_Up)) {
-        float lim = static_cast<float>(M_PI / 2.0 - M_PI / 100.0);
-        camera_direct.setY(std::min(std::max(camera_direct.y() + alpha, -lim), lim));
-    }
-
-    if (keys.count(Qt::Key_Down)) {
-        float lim = static_cast<float>(M_PI / 2.0 - M_PI / 100.0);
-        camera_direct.setY(std::min(std::max(camera_direct.y() - alpha, -lim), lim));
-    }
-
-    if (keys.count(Qt::Key_Left)) {
-        camera_direct.setX(camera_direct.x() - alpha);
-        if (camera_direct.x() < -M_PI)
-            camera_direct += QVector2D(2*M_PI, 0);
-        if (camera_direct.x() > M_PI)
-            camera_direct -= QVector2D(2*M_PI, 0);
-    }
-
-    if (keys.count(Qt::Key_Right)) {
-        camera_direct.setX(camera_direct.x() + alpha);
-        if (camera_direct.x() < -M_PI)
-            camera_direct += QVector2D(2*M_PI, 0);
-        if (camera_direct.x() > M_PI)
-            camera_direct -= QVector2D(2*M_PI, 0);
-    }
+	if (keys.count(Qt::Key_A)) {
+		QVector3D d = QVector3D::normal(direct, direct + QVector3D(0, 1, 0));
+		camera_pos -= d * delta;
+	}
 
 
-    // Decrease angular speed (friction)
-    angularSpeed *= 0.99;
+	if (keys.count(Qt::Key_Up))
+		viewUp(alpha);
 
-    // Stop rotation when speed goes below threshold
-    if (angularSpeed < 0.01) {
-        angularSpeed = 0.0;
-    } else {
-        // Update rotation
-        rotation = QQuaternion::fromAxisAndAngle(rotationAxis, angularSpeed) * rotation;
+	if (keys.count(Qt::Key_Down))
+		viewUp(-alpha);
 
-        // Update scene
-    }
+	if (keys.count(Qt::Key_Right))
+		viewRight(alpha);
 
-    QDateTime now = QDateTime::currentDateTimeUtc();
-    for (unsigned idx = 0; idx < planets.size(); ++idx)
-        planets[idx]->changeTime(now);
+	if (keys.count(Qt::Key_Left))
+		viewRight(-alpha);
 
-    updateGL();
+	for (char num = '0'; num <= '9'; ++num)
+		if (keys.count(num)) {
+			QVector3D move = -camera_pos;
+			if (num != '0')
+				move = planets[num - '1']->_position - camera_pos;
+			float x = std::atan2(move.x(), -move.z());
+			float y = std::atan2(move.y(), std::pow(move.x() * move.x() + move.z() * move.z(), .5f));
+			camera_direct.setX(x);
+			if (camera_direct.x() < -M_PI)
+				camera_direct += QVector2D(2*M_PI, 0);
+			if (camera_direct.x() > M_PI)
+				camera_direct -= QVector2D(2*M_PI, 0);
+			float lim = M_PI / 2.0 - M_PI / 100.0;
+			camera_direct.setY(std::min(std::max(y, -lim), lim));
+		}
+	if (false && modeFps) {
+		QPoint c(width() / 2, height() / 2);
+		auto pos = QCursor::pos() - mapToGlobal(c);
+		mouse_shift = QVector2D(
+					(3.0f * mouse_shift.x() + pos.x()) / 4.0f,
+					(3.0f * mouse_shift.y() + pos.y()) / 4.0f
+		);
+		mouse_shift = QVector2D(
+					std::abs(mouse_shift.x()) > 0.01f ? mouse_shift.x() : 0.0f,
+					std::abs(mouse_shift.y()) > 0.01f ? mouse_shift.y() : 0.0f
+		);
+		
+		viewUp(mouse_shift.y() * .01);
+		viewRight(mouse_shift.x() * .01);
+	    QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
+	}
+
+    if (keys.count(Qt::Key_Plus))
+    	modifyAngle(1);
+    if (keys.count(Qt::Key_Minus))
+    	modifyAngle(-1);
+    if (keys.count('/'))
+    	modifyAngle(viewAngle - 45);
+
+	// // Decrease angular speed (friction)
+	// angularSpeed *= 0.99;
+
+	// // Stop rotation when speed goes below threshold
+	// if (angularSpeed < 0.01) {
+	// 	angularSpeed = 0.0;
+	// } else {
+	// 	// Update rotation
+	// 	rotation = QQuaternion::fromAxisAndAngle(rotationAxis, angularSpeed) * rotation;
+
+	// 	// Update scene
+	// }
+
+	QDateTime now = QDateTime::currentDateTimeUtc();
+	for (unsigned idx = 0; idx < planets.size(); ++idx)
+		planets[idx]->changeTime(now);
+
+	updateGL();
 }
 //! [1]
 
 void MainWidget::initializeGL()
 {
-    initializeGLFunctions();
-    qglClearColor(Qt::black);
-    initShaders();
-    initObjects();
+	initializeGLFunctions();
+	qglClearColor(Qt::black);
+	initShaders();
+	initObjects();
 
 //! [2]
-    // Enable depth buffer
-    glEnable(GL_DEPTH_TEST);
+	// Enable depth buffer
+	glEnable(GL_DEPTH_TEST);
 
-    // Enable back face culling
-    glEnable(GL_CULL_FACE);
+	// Enable back face culling
+	glEnable(GL_CULL_FACE);
 //! [2]
 
 
-    // Use QBasicTimer because its faster than QTimer
-    timer.start(12, this);
+	// Use QBasicTimer because its faster than QTimer
+	timer.start(12, this);
 }
 
 //! [3]
 void MainWidget::initShaders()
 {
-    // Override system locale until shaders are compiled
-    setlocale(LC_NUMERIC, "C");
+	// Override system locale until shaders are compiled
+	setlocale(LC_NUMERIC, "C");
 
-    // Compile vertex shader
-    if (!programLight.addShaderFromSourceFile(QGLShader::Vertex, ":/vshaderLight.glsl"))
-        close();
+	// Compile vertex shader
+	if (!programLight.addShaderFromSourceFile(QGLShader::Vertex, ":/vshaderLight.glsl"))
+		close();
 
-    // Compile fragment shader
-    if (!programLight.addShaderFromSourceFile(QGLShader::Fragment, ":/fshaderLight.glsl"))
-        close();
+	// Compile fragment shader
+	if (!programLight.addShaderFromSourceFile(QGLShader::Fragment, ":/fshaderLight.glsl"))
+		close();
 
-    // Link shader pipeline
-    if (!programLight.link())
-        close();
+	// Link shader pipeline
+	if (!programLight.link())
+		close();
 
-    // Compile vertex shader
-    if (!programDark.addShaderFromSourceFile(QGLShader::Vertex, ":/vshaderDark.glsl"))
-        close();
+	// Compile vertex shader
+	if (!programDark.addShaderFromSourceFile(QGLShader::Vertex, ":/vshaderDark.glsl"))
+		close();
 
-    // Compile fragment shader
-    if (!programDark.addShaderFromSourceFile(QGLShader::Fragment, ":/fshaderDark.glsl"))
-        close();
+	// Compile fragment shader
+	if (!programDark.addShaderFromSourceFile(QGLShader::Fragment, ":/fshaderDark.glsl"))
+		close();
 
-    // Link shader pipeline
-    if (!programDark.link())
-        close();
+	// Link shader pipeline
+	if (!programDark.link())
+		close();
 
 
-    // if (!programLight.bind())
-    //     close();
+	// if (!programLight.bind())
+	//     close();
 
-    // Restore system locale
-    setlocale(LC_ALL, "");
+	// Restore system locale
+	setlocale(LC_ALL, "");
 }
 //! [3]
 
 //! [4]
 void MainWidget::initObjects()
 {
-    // Load cube.png image
-    glEnable(GL_TEXTURE_2D);
+	// Load cube.png image
+	glEnable(GL_TEXTURE_2D);
 //    cube_texture = bindTexture(QImage(":/cube.png"));
-    // one_sphere.reset(new SphereEngine(2)); //QImage(":/Earth.png"), *this));
-    // one_sphere->init(QImage(":/earth"), *this);
-    // one_sphere->_position = QVector3D(10, 0, 0);
+	// one_sphere.reset(new SphereEngine(2)); //QImage(":/Earth.png"), *this));
+	// one_sphere->init(QImage(":/earth"), *this);
+	// one_sphere->_position = QVector3D(10, 0, 0);
 
-    for (int idx = 0; idx < PlanetConfig::count; ++idx)
-        planets.push_back(std::unique_ptr<PlanetEngine>(new PlanetEngine(PlanetConfig::cnf[idx], *this)));
+	for (int idx = 0; idx < PlanetConfig::count; ++idx)
+		planets.push_back(std::unique_ptr<PlanetEngine>(new PlanetEngine(PlanetConfig::cnf[idx], *this)));
 
-    theSun.reset(new SphereEngine(696342.0 / 149597870.691)); //QImage(":/Earth.png"), *this));
-    theSun->init(QImage(":/sun"), *this);
-    theSun->_position = QVector3D(0, 0, 0);
+	theSun.reset(new SphereEngine(696342.0 / 149597870.691)); //QImage(":/Earth.png"), *this));
+	theSun->init(QImage(":/sun"), *this);
+	theSun->_position = QVector3D(0, 0, 0);
 
-    // qDebug() << QImage(":/Earth.png");
+	// qDebug() << QImage(":/Earth.png");
 }
 
 void MainWidget::keyPressEvent(QKeyEvent *key)
 {
-    keys.insert(key->key());
+	keys.insert(key->key());
 }
 
 void MainWidget::keyReleaseEvent(QKeyEvent *key)
 {
-    keys.erase(key->key());
+	keys.erase(key->key());
 }
 
 void MainWidget::resizeGL(int w, int h)
 {
-    // Set OpenGL viewport to cover whole widget
-    glViewport(0, 0, w, h);
+	// Set OpenGL viewport to cover whole widget
+	glViewport(0, 0, w, h);
 
-    // Calculate aspect ratio
-    qreal aspect = qreal(w) / qreal(h ? h : 1);
+	// Calculate aspect ratio
+	aspect = qreal(w) / qreal(h ? h : 1);
 
-    // Set near plane to 3.0, far plane to 7.0, field of view 45 degrees
-    const qreal zNear = 0.00002, zFar = 15.0, fov = 45.0;
+	// Set near plane to 3.0, far plane to 7.0, field of view 45 degrees
+	zNear = 0.00002, zFar = 15.0, viewAngle = 45.0;
 
-    // Reset projection
-    projection.setToIdentity();
+	// Reset projection
+	projection.setToIdentity();
 
-    // Set perspective projection
-    projection.perspective(fov, aspect, zNear, zFar);
+	// Set perspective projection
+	projection.perspective(viewAngle, aspect, zNear, zFar);
 }
 //! [5]
 
 void MainWidget::paintGL()
 {
-    // Clear color and depth buffer
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	// Clear color and depth buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Calculate model view transformation
-    QMatrix4x4 matrix;
-    matrix.translate(0.0, 0.0, -1);
-    matrix.rotate(rotation);
+	// Calculate model view transformation
+	QMatrix4x4 matrix;
+	matrix.translate(0.0, 0.0, -1);
+	matrix.rotate(rotation);
 
-    QMatrix4x4 matrix_normal;
-    matrix_normal.rotate(rotation);
+	QMatrix4x4 matrix_normal;
+	matrix_normal.rotate(rotation);
 
-    QMatrix4x4 shift_camera;
-    shift_camera.rotate(-camera_direct.y() / M_PI * 180, 1, 0, 0);
-    shift_camera.rotate(camera_direct.x() / M_PI * 180, 0, 1, 0);
+	QMatrix4x4 shift_camera;
+	shift_camera.rotate(-camera_direct.y() / M_PI * 180, 1, 0, 0);
+	shift_camera.rotate(camera_direct.x() / M_PI * 180, 0, 1, 0);
 
-    QMatrix4x4 projectionMatrix = projection * shift_camera;
+	QMatrix4x4 projectionMatrix = projection * shift_camera;
 
-    programDark.bind();
-    theSun->draw(programDark, projectionMatrix, camera_pos);
-    // qDebug() << theSun->_position << theSun->radius;
-    programLight.bind();
-    programLight.setUniformValue("eyePos", QVector4D(camera_pos, 0));
-    programLight.setUniformValue("lightPos", QVector4D(-camera_pos, 1));
+	programDark.bind();
+	theSun->draw(programDark, projectionMatrix, camera_pos);
+	// qDebug() << theSun->_position << theSun->radius;
+	programLight.bind();
+	programLight.setUniformValue("eyePos", QVector4D(camera_pos, 0));
+	programLight.setUniformValue("lightPos", QVector4D(-camera_pos, 1));
 
-    // Draw cube geometry
-    // one_sphere->draw(programLight, projectionMatrix, camera_pos);
-    for (unsigned idx = 0; idx < planets.size(); ++idx) {
-        planets[idx]->draw(programLight, projectionMatrix, camera_pos);
-        // qDebug() << planets[idx]->_position << planets[idx]->radius;
-    }
-    // exit(0);
+	// Draw cube geometry
+	// one_sphere->draw(programLight, projectionMatrix, camera_pos);
+	for (unsigned idx = 0; idx < planets.size(); ++idx) {
+		planets[idx]->draw(programLight, projectionMatrix, camera_pos);
+		// qDebug() << planets[idx]->_position << planets[idx]->radius;
+	}
+	// exit(0);
 }

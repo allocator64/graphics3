@@ -2,7 +2,7 @@
 
 void BaseEngine::init(QImage const &texture, QGLWidget &context)
 {
-    qDebug() << texture.size();
+    // qDebug() << texture.size();
 
 	initializeGLFunctions();
 
@@ -127,7 +127,7 @@ void SphereEngine::initGeometry()
 }
 
 PlanetEngine::PlanetEngine(PlanetConfig::Config const &c, QGLWidget &context)
-	: SphereEngine(c.initial_inner_rad / 149597870.691 * 1000)
+	: SphereEngine(c.initial_inner_rad / 149597870.691)
 {
 	impl.reset(new PlanetImpl(c));
 	init(QImage(":/" + c.name), context);
