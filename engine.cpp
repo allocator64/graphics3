@@ -2,6 +2,8 @@
 
 void BaseEngine::init(QImage const &texture, QGLWidget &context)
 {
+    qDebug() << texture.size();
+
 	initializeGLFunctions();
 
 //! [0]
@@ -122,4 +124,18 @@ void SphereEngine::initGeometry()
 			}
 		}
 	}
+}
+
+PlanetEngine::PlanetEngine(PlanetConfig::Config const &c, QGLWidget &context)
+	: SphereEngine(c.initial_inner_rad / 149597870.691 * 1000)
+{
+	impl.reset(new PlanetImpl(c));
+	init(QImage(":/" + c.name), context);
+	changeTime(QDateTime::currentDateTimeUtc());
+}
+
+void PlanetEngine::changeTime(QDateTime const &t)
+{
+    _position = impl->getPosition(t);
+    _rotation = QQuaternion::fromAxisAndAngle(0, 1, 0, impl->getRotationAngle(t));
 }

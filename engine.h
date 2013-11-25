@@ -9,9 +9,7 @@
 #include <vector>
 #include <cmath>
 
-#ifndef M_PI
-#	define M_PI 3.1415926535897932384626433832795
-#endif
+#include "ephemeris.h"
 
 struct BaseEngine : public QGLFunctions
 {
@@ -36,14 +34,17 @@ struct BaseEngine : public QGLFunctions
 
 struct SphereEngine : public BaseEngine
 {
-	SphereEngine(float radius_, int count_);
+	SphereEngine(float radius_, int count_=30);
 	void initGeometry();
 
 	float const radius;
 	int const cnt;
 };
 
-// struct PlanetEngine : public SphereEngine
-// {
-// 	// unique_ptr<
-// }
+struct PlanetEngine : public SphereEngine
+{
+	explicit PlanetEngine(PlanetConfig::Config const &c, QGLWidget &context);
+	void changeTime(QDateTime const &t);
+
+    std::unique_ptr<PlanetImpl> impl;
+};

@@ -133,7 +133,7 @@ PlanetConfig::Config const PlanetConfig::cnf[PlanetConfig::count] = {
 		0.04240589
 	},
 	{
-		"neptune",
+		"neptun",
 
 		24300,
 		30.06992276,

@@ -1,6 +1,14 @@
 <RCC>
     <qresource prefix="/">
-        <file alias="earth">instagram/Earth.bmp</file>
-		<file alias="sun">instagram/theSun.jpg</file>
+        <file alias="earth">instagram/earth.jpg</file>
+        <file alias="jupiter">instagram/jupiter.jpg</file>
+        <file alias="mars">instagram/mars.jpg</file>
+        <file alias="mercury">instagram/mercury.jpg</file>
+        <file alias="neptun">instagram/neptun.jpg</file>
+        <file alias="pluto">instagram/pluto.jpg</file>
+        <file alias="saturn">instagram/saturn.jpg</file>
+        <file alias="sun">instagram/sun.jpg</file>
+        <file alias="uranus">instagram/uranus.jpg</file>
+        <file alias="venus">instagram/venus.jpg</file>
     </qresource>
 </RCC>

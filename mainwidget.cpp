@@ -43,7 +43,7 @@ void MainWidget::mouseReleaseEvent(QMouseEvent *e)
 //! [1]
 void MainWidget::timerEvent(QTimerEvent *)
 {
-    const float delta = 0.2;
+    const float delta = 0.02;
     const float alpha = 0.05;
     QVector3D direct(
                 std::cos(camera_direct.y()) * std::sin(camera_direct.x()),
@@ -108,6 +108,11 @@ void MainWidget::timerEvent(QTimerEvent *)
 
         // Update scene
     }
+
+    QDateTime now = QDateTime::currentDateTimeUtc();
+    for (unsigned idx = 0; idx < planets.size(); ++idx)
+        planets[idx]->changeTime(now);
+
     updateGL();
 }
 //! [1]
@@ -177,11 +182,14 @@ void MainWidget::initObjects()
     // Load cube.png image
     glEnable(GL_TEXTURE_2D);
 //    cube_texture = bindTexture(QImage(":/cube.png"));
-    one_sphere.reset(new SphereEngine(2, 30)); //QImage(":/Earth.png"), *this));
-    one_sphere->init(QImage(":/earth"), *this);
-    one_sphere->_position = QVector3D(10, 0, 0);
+    // one_sphere.reset(new SphereEngine(2)); //QImage(":/Earth.png"), *this));
+    // one_sphere->init(QImage(":/earth"), *this);
+    // one_sphere->_position = QVector3D(10, 0, 0);
 
-    theSun.reset(new SphereEngine(5, 30)); //QImage(":/Earth.png"), *this));
+    for (int idx = 0; idx < PlanetConfig::count; ++idx)
+        planets.push_back(std::unique_ptr<PlanetEngine>(new PlanetEngine(PlanetConfig::cnf[idx], *this)));
+
+    theSun.reset(new SphereEngine(696342.0 / 149597870.691)); //QImage(":/Earth.png"), *this));
     theSun->init(QImage(":/sun"), *this);
     theSun->_position = QVector3D(0, 0, 0);
 
@@ -207,7 +215,7 @@ void MainWidget::resizeGL(int w, int h)
     qreal aspect = qreal(w) / qreal(h ? h : 1);
 
     // Set near plane to 3.0, far plane to 7.0, field of view 45 degrees
-    const qreal zNear = 0.0001, zFar = 1000000.0, fov = 45.0;
+    const qreal zNear = 0.00002, zFar = 15.0, fov = 45.0;
 
     // Reset projection
     projection.setToIdentity();
@@ -224,7 +232,7 @@ void MainWidget::paintGL()
 
     // Calculate model view transformation
     QMatrix4x4 matrix;
-    matrix.translate(0.0, 0.0, -4);
+    matrix.translate(0.0, 0.0, -1);
     matrix.rotate(rotation);
 
     QMatrix4x4 matrix_normal;
@@ -238,11 +246,16 @@ void MainWidget::paintGL()
 
     programDark.bind();
     theSun->draw(programDark, projectionMatrix, camera_pos);
-
+    // qDebug() << theSun->_position << theSun->radius;
     programLight.bind();
     programLight.setUniformValue("eyePos", QVector4D(camera_pos, 0));
     programLight.setUniformValue("lightPos", QVector4D(-camera_pos, 1));
 
     // Draw cube geometry
-    one_sphere->draw(programLight, projectionMatrix, camera_pos);
+    // one_sphere->draw(programLight, projectionMatrix, camera_pos);
+    for (unsigned idx = 0; idx < planets.size(); ++idx) {
+        planets[idx]->draw(programLight, projectionMatrix, camera_pos);
+        // qDebug() << planets[idx]->_position << planets[idx]->radius;
+    }
+    // exit(0);
 }
