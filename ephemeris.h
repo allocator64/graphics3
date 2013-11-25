@@ -13,15 +13,15 @@ struct PlanetImpl
 
 	struct Orbit
 	{
-		double a; //! semi-major axis
-		double e; //! eccentricity
-		double i; //! inclination
-		double w; //! argument of periapsis
-		double W; //! logtitude of the ascending node
-		double l; //! mean longtituude
+		double a;
+		double e;
+		double i;
+		double w;
+		double W;
+		double l;
 	};
 
-    Orbit _initial_orbit;
+    Orbit orbitInit;
     Orbit _delta_orbit;
 
 	double _radius;

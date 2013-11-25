@@ -22,7 +22,7 @@ public:
 	
 protected:
 	void mousePressEvent(QMouseEvent *e);
-	void mouseReleaseEvent(QMouseEvent *e);
+    void mouseReleaseEvent(QMouseEvent *);
 	void timerEvent(QTimerEvent *e);
 
 	void initializeGL();
@@ -31,37 +31,37 @@ protected:
 
 	void initShaders();
 	void initObjects();
+	void bindTextureWrap(GLuint textureIdx);
 
 	void keyPressEvent(QKeyEvent *key);
 	void keyReleaseEvent(QKeyEvent *key);
 
 	void viewUp(float alpha);
 	void viewRight(float alpha);
+	void viewForward(float delta);
 	void modifyAngle(float alpha);
 	void changeDeltaTime(float delta);
-
+	QVector3D getDirection();
+	
 private:
 	QBasicTimer timer;
+	
 	QGLShaderProgram programLight;
 	QGLShaderProgram programDark;
-    std::unique_ptr<SphereEngine> one_sphere;
+
     std::unique_ptr<SphereEngine> theSun;
-    std::unique_ptr<ErehpsEngine> theSky;
+    std::unique_ptr<SphereEngine> aSun;
+    std::unique_ptr<SphereEngine> theSky;
     std::vector<std::unique_ptr<PlanetEngine>> planets;
     
-	std::unordered_set<int> keys;
+	std::unordered_set<int> holdedKeys;
 
-	QMatrix4x4 projection;
+	QMatrix4x4 stateProjection;
+	QQuaternion stateRotation;
 
-	QVector2D mousePressPosition;
-	QVector3D rotationAxis;
-	qreal angularSpeed;
-	QQuaternion rotation;
-
-	QVector3D camera_pos;
-	QVector2D camera_direct;
+	QVector3D cameraPosition;
+	QVector2D cameraDirection;
 	bool modeFps;
-	QVector2D mouse_shift;
 	qreal zNear, zFar, viewAngle;
 	qreal aspect;
 	bool action;

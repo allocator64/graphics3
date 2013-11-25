@@ -19,38 +19,33 @@ struct BaseEngine : public QGLFunctions
 		QVector2D texCoord;
 		QVector3D normal;
 	};
-	void init(QImage const &texture, QGLWidget &context);
+	void init(QGLWidget *that, QImage const &texture);
+	void draw(QGLShaderProgram &program, QMatrix4x4 const &stateProjection, QVector3D const &stateCameraPosition);
     virtual void initGeometry() = 0;
-	void draw(QGLShaderProgram &shader, QMatrix4x4 const &projection, QVector3D const &camera_pos);
 
 	std::vector<VertexData> vertices;
 	std::vector<GLushort> indices;
 	GLuint vboIds[2];
+    GLuint textureIdx;
 
-	QQuaternion _rotation;
-	QVector3D _position;
-	GLuint _texture;
+    QQuaternion stateRotation;
+    QVector3D statePosition;
 };
 
 struct SphereEngine : public BaseEngine
 {
-	SphereEngine(float radius_, int count_=30);
+	explicit SphereEngine(float radius_, bool inverted_=false, int count_=30);
 	void initGeometry();
 
 	float const radius;
 	int const cnt;
-};
-
-struct ErehpsEngine : public SphereEngine
-{
-	ErehpsEngine(float radius_, int count_=30);
-	void initGeometry();
+	bool const inverted;
 };
 
 struct PlanetEngine : public SphereEngine
 {
-	explicit PlanetEngine(PlanetConfig::Config const &c, QGLWidget &context);
-	void changeTime(QDateTime const &t);
+	PlanetEngine(QGLWidget *that_, PlanetConfig::Config const &cnf_);
+	void changeTime(QDateTime const &newTime);
 
     std::unique_ptr<PlanetImpl> impl;
 };

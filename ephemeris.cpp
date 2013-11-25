@@ -6,12 +6,12 @@ PlanetImpl::PlanetImpl(PlanetConfig::Config const &c)
 {
 	_rotation_period = c.initial_rot_period;
 	_radius = c.initial_inner_rad / 149597870.691;
-	_initial_orbit.a = c.initial_sm_axis;
-	_initial_orbit.e = c.initial_ecc;
-	_initial_orbit.i = c.initial_incl;
-	_initial_orbit.w = c.initial_per_arg;
-	_initial_orbit.W = c.initial_an_long;
-	_initial_orbit.l = c.initial_mean_long;
+	orbitInit.a = c.initial_sm_axis;
+	orbitInit.e = c.initial_ecc;
+	orbitInit.i = c.initial_incl;
+	orbitInit.w = c.initial_per_arg;
+	orbitInit.W = c.initial_an_long;
+	orbitInit.l = c.initial_mean_long;
 
 	_delta_orbit.a = c.delta_sm_axis;
 	_delta_orbit.e = c.delta_ecc;
@@ -31,8 +31,11 @@ QVector3D PlanetImpl::getEllipsePos(const Orbit &eph, double M)
 		oE = E;
 		E = M + eph.e * std::sin(E);
 	}
-	double x = eph.a * (std::cos(E) - eph.e);
-	double y = eph.a * std::sqrt(1 - eph.e * eph.e) * std::sin(E);
+	double eph_a = eph.a;
+	if (PlanetConfig::modeSurvey)
+		eph_a = std::log(1.0 + eph.a) / 1e3;
+	double x = eph_a * (std::cos(E) - eph.e);
+	double y = eph_a * std::sqrt(1 - eph.e * eph.e) * std::sin(E);
 	double sO = std::sin(eph.W);
 	double cO = std::cos(eph.W);
 	double sw = std::sin(w);
@@ -58,12 +61,12 @@ double PlanetImpl::getEphemerisValue(double jdn, double initial, double rate_per
 PlanetImpl::Orbit PlanetImpl::getEphemeris(double date)
 {
 	Orbit eph;
-	eph.a = getEphemerisValue(date, _initial_orbit.a, _delta_orbit.a);
-	eph.e = getEphemerisValue(date, _initial_orbit.e, _delta_orbit.e);
-	eph.i = getEphemerisValue(date, M_PI / 180.0 * _initial_orbit.i, M_PI / 180.0 * _delta_orbit.i);
-	eph.l = getEphemerisValue(date, M_PI / 180.0 * _initial_orbit.l, M_PI / 180.0 * _delta_orbit.l);
-	eph.w = getEphemerisValue(date, M_PI / 180.0 * _initial_orbit.w, M_PI / 180.0 * _delta_orbit.w);
-	eph.W = getEphemerisValue(date, M_PI / 180.0 * _initial_orbit.W, M_PI / 180.0 * _delta_orbit.W);
+	eph.a = getEphemerisValue(date, orbitInit.a, _delta_orbit.a);
+	eph.e = getEphemerisValue(date, orbitInit.e, _delta_orbit.e);
+	eph.i = getEphemerisValue(date, M_PI / 180.0 * orbitInit.i, M_PI / 180.0 * _delta_orbit.i);
+	eph.l = getEphemerisValue(date, M_PI / 180.0 * orbitInit.l, M_PI / 180.0 * _delta_orbit.l);
+	eph.w = getEphemerisValue(date, M_PI / 180.0 * orbitInit.w, M_PI / 180.0 * _delta_orbit.w);
+	eph.W = getEphemerisValue(date, M_PI / 180.0 * orbitInit.W, M_PI / 180.0 * _delta_orbit.W);
 	return eph;
 }
 

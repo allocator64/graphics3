@@ -11,7 +11,8 @@ MainWidget::MainWidget(QWidget *parent) :
 	action(true),
 	deltaTime(1),
 	shiftedTime(QDateTime::currentDateTimeUtc()),
-	prevTime(QDateTime::currentDateTimeUtc())
+	prevTime(QDateTime::currentDateTimeUtc()),
+	modeFps(false)
 {
 	qDebug() << PlanetConfig::cnf[0].name;
 }
@@ -20,12 +21,14 @@ MainWidget::MainWidget(QWidget *parent) :
 void MainWidget::mousePressEvent(QMouseEvent *e)
 {
 	// Save mouse press position
-	if (e->button() == Qt::LeftButton)
-		modeFps = true;
+	if (e->button() == Qt::LeftButton) {
+		modeFps = !modeFps;
+		qDebug() << "modeFps: " << modeFps;
+	}
 	// mousePressPosition = QVector2D(e->localPos());
 }
 
-void MainWidget::mouseReleaseEvent(QMouseEvent *e)
+void MainWidget::mouseReleaseEvent(QMouseEvent *)
 {
 	// // Mouse release position - mouse press position
 	// QVector2D diff = QVector2D(e->localPos()) - mousePressPosition;
@@ -42,32 +45,45 @@ void MainWidget::mouseReleaseEvent(QMouseEvent *e)
 
 	// // Increase angular speed
 	// angularSpeed += acc;
-
-	if (e->button() == Qt::LeftButton)
-		modeFps = false;
 }
 //! [0]
 
 void MainWidget::viewUp(float alpha)
 {
 	float lim = M_PI / 2.0 - M_PI / 100.0;
-	camera_direct.setY(std::min(std::max(camera_direct.y() + alpha, -lim), lim));
+	cameraDirection.setY(std::min(std::max(cameraDirection.y() + alpha, -lim), lim));
 }
 
 void MainWidget::viewRight(float alpha)
 {
-	camera_direct.setX(camera_direct.x() + alpha);
-	if (camera_direct.x() < -M_PI)
-		camera_direct += QVector2D(2*M_PI, 0);
-	if (camera_direct.x() > M_PI)
-		camera_direct -= QVector2D(2*M_PI, 0);
+	cameraDirection.setX(cameraDirection.x() + alpha);
+	if (cameraDirection.x() < -M_PI)
+		cameraDirection += QVector2D(2*M_PI, 0);
+	if (cameraDirection.x() > M_PI)
+		cameraDirection -= QVector2D(2*M_PI, 0);
+}
+
+QVector3D MainWidget::getDirection()
+{
+	QVector3D direct(
+		std::cos(cameraDirection.y()) * std::sin(cameraDirection.x()),
+		std::sin(cameraDirection.y()),
+		-std::cos(cameraDirection.y()) * std::cos(cameraDirection.x()));
+	direct.normalize();
+	return direct;
+}
+
+void MainWidget::viewForward(float delta)
+{
+	QVector3D direct = getDirection();
+	cameraPosition += direct * delta;
 }
 
 void MainWidget::modifyAngle(float alpha)
 {
 	viewAngle = std::min(std::max((float)viewAngle - alpha, 10.0f), 120.0f);
-	projection.setToIdentity();
-	projection.perspective(viewAngle, aspect, zNear, zFar);
+	stateProjection.setToIdentity();
+	stateProjection.perspective(viewAngle, aspect, zNear, zFar);
 
 }
 
@@ -81,92 +97,78 @@ void MainWidget::changeDeltaTime(float delta)
 void MainWidget::timerEvent(QTimerEvent *)
 {
 	float alpha = .05;
-	QVector3D direct(
-				std::cos(camera_direct.y()) * std::sin(camera_direct.x()),
-				std::sin(camera_direct.y()),
-				-std::cos(camera_direct.y()) * std::cos(camera_direct.x()));
-	direct.normalize();
-
-	float d = camera_pos.length();
+	float d = cameraPosition.length();
 	for (unsigned idx = 0; idx < planets.size(); ++idx)
-		d = std::min(d, camera_pos.distanceToPoint(planets[idx]->_position));
-	float delta = std::max(d / 10, .00002f);
+		d = std::min(d, cameraPosition.distanceToPoint(planets[idx]->statePosition));
+	float delta = std::max(d / 10, .000001f);
+	QVector3D direct = getDirection();
+	if (holdedKeys.count(Qt::Key_W))
+		viewForward(delta);
 
-	if (keys.count(Qt::Key_W)) {
-		camera_pos += direct * delta;
-	}
+	if (holdedKeys.count(Qt::Key_S))
+		viewForward(-delta);
 
-	if (keys.count(Qt::Key_S)) {
-		camera_pos -= direct * delta;
-	}
-
-	if (keys.count(Qt::Key_D)) {
+	if (holdedKeys.count(Qt::Key_D)) {
 		QVector3D d = QVector3D::normal(direct, direct + QVector3D(0, 1, 0));
-		camera_pos += d * delta;
+		cameraPosition += d * delta;
 	}
 
-	if (keys.count(Qt::Key_A)) {
+	if (holdedKeys.count(Qt::Key_A)) {
 		QVector3D d = QVector3D::normal(direct, direct + QVector3D(0, 1, 0));
-		camera_pos -= d * delta;
+		cameraPosition -= d * delta;
 	}
 
-
-	if (keys.count(Qt::Key_Up))
+	if (holdedKeys.count(Qt::Key_Up))
 		viewUp(alpha);
 
-	if (keys.count(Qt::Key_Down))
+	if (holdedKeys.count(Qt::Key_Down))
 		viewUp(-alpha);
 
-	if (keys.count(Qt::Key_Right))
+	if (holdedKeys.count(Qt::Key_Right))
 		viewRight(alpha);
 
-	if (keys.count(Qt::Key_Left))
+	if (holdedKeys.count(Qt::Key_Left))
 		viewRight(-alpha);
 
 	for (char num = '0'; num <= '9'; ++num)
-		if (keys.count(num)) {
-			QVector3D move = -camera_pos;
-			if (num != '0')
-				move = planets[num - '1']->_position - camera_pos;
+		if (holdedKeys.count(num)) {
+			QVector3D move = -cameraPosition;
+			float soNear = theSun->radius;
+			if (PlanetConfig::modeSurvey)
+				soNear = aSun->radius;
+			if (num != '0') {
+				move = planets[num - '1']->statePosition - cameraPosition;
+				soNear = planets[num - '1']->radius;
+			}
 			float x = std::atan2(move.x(), -move.z());
 			float y = std::atan2(move.y(), std::pow(move.x() * move.x() + move.z() * move.z(), .5f));
-			camera_direct.setX(x);
-			if (camera_direct.x() < -M_PI)
-				camera_direct += QVector2D(2*M_PI, 0);
-			if (camera_direct.x() > M_PI)
-				camera_direct -= QVector2D(2*M_PI, 0);
-			float lim = M_PI / 2.0 - M_PI / 100.0;
-			camera_direct.setY(std::min(std::max(y, -lim), lim));
+			if (x == cameraDirection.x() && y == cameraDirection.y()) {
+				viewForward(delta);
+			} else {
+				viewRight(x - cameraDirection.x());
+				viewUp(y - cameraDirection.y());
+			}
 		}
-	if (false && modeFps) {
-		QPoint c(width() / 2, height() / 2);
-		auto pos = QCursor::pos() - mapToGlobal(c);
-		mouse_shift = QVector2D(
-					(3.0f * mouse_shift.x() + pos.x()) / 4.0f,
-					(3.0f * mouse_shift.y() + pos.y()) / 4.0f
-		);
-		mouse_shift = QVector2D(
-					std::abs(mouse_shift.x()) > 0.01f ? mouse_shift.x() : 0.0f,
-					std::abs(mouse_shift.y()) > 0.01f ? mouse_shift.y() : 0.0f
-		);
-		
-		viewUp(mouse_shift.y() * .01);
-		viewRight(mouse_shift.x() * .01);
+
+	if (modeFps) {
+		QPoint pos = QCursor::pos() - mapToGlobal(QPoint(width() / 2, height() / 2));
+		viewUp(-pos.y() * .01);
+		viewRight(pos.x() * .01);
 		QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
 	}
 
-	if (keys.count(Qt::Key_Plus))
+	if (holdedKeys.count(Qt::Key_Plus))
 		modifyAngle(1);
-	if (keys.count(Qt::Key_Minus))
+	if (holdedKeys.count(Qt::Key_Minus))
 		modifyAngle(-1);
-	if (keys.count('/'))
+	if (holdedKeys.count('/'))
 		modifyAngle(viewAngle - 45);
 
-	if (keys.count(Qt::Key_C))
+	if (holdedKeys.count(Qt::Key_C))
 		changeDeltaTime(deltaTime * 2);
-	if (keys.count(Qt::Key_Z))
+	if (holdedKeys.count(Qt::Key_Z))
 		changeDeltaTime(deltaTime / 2);
-	if (keys.count(Qt::Key_X))
+	if (holdedKeys.count(Qt::Key_X))
 		changeDeltaTime(0);
 
 	// // Decrease angular speed (friction)
@@ -256,23 +258,19 @@ void MainWidget::initObjects()
 {
 	// Load cube.png image
 	glEnable(GL_TEXTURE_2D);
-//    cube_texture = bindTexture(QImage(":/cube.png"));
-	// one_sphere.reset(new SphereEngine(2)); //QImage(":/Earth.png"), *this));
-	// one_sphere->init(QImage(":/earth"), *this);
-	// one_sphere->_position = QVector3D(10, 0, 0);
+	// cube_texture = bindTexture(QImage(":/cube.png"));
 
 	for (int idx = 0; idx < PlanetConfig::count; ++idx)
-		planets.push_back(std::unique_ptr<PlanetEngine>(new PlanetEngine(PlanetConfig::cnf[idx], *this)));
+		planets.push_back(std::unique_ptr<PlanetEngine>(new PlanetEngine(this, PlanetConfig::cnf[idx])));
 
-	theSun.reset(new SphereEngine(696342.0 / 149597870.691)); //QImage(":/Earth.png"), *this));
-	theSun->init(QImage(":/sun"), *this);
-	theSun->_position = QVector3D(0, 0, 0);
+	theSun.reset(new SphereEngine(696342.0 / 149597870.691));
+	theSun->init(this, QImage(":/sun"));
 
-	theSky.reset(new ErehpsEngine(10)); //QImage(":/Earth.png"), *this));
-	theSky->init(QImage(":/sky"), *this);
-	theSky->_position = QVector3D(0, 0, 0);
+	aSun.reset(new SphereEngine(0.0002));
+	aSun->init(this, QImage(":/sun"));
 
-	// qDebug() << QImage(":/Earth.png");
+	theSky.reset(new SphereEngine(10, /* inverted */ true));
+	theSky->init(this, QImage(":/sky"));
 }
 
 void MainWidget::keyPressEvent(QKeyEvent *key)
@@ -281,13 +279,17 @@ void MainWidget::keyPressEvent(QKeyEvent *key)
 		action = !action;
 		qDebug() << "Action: " << action;
 	}
-
-	keys.insert(key->key());
+	if (key->key() == Qt::Key_V) {
+		PlanetConfig::modeSurvey = !PlanetConfig::modeSurvey;
+		deltaTime = 1;
+		qDebug() << "modeSurvey: " << PlanetConfig::modeSurvey;
+	}
+	holdedKeys.insert(key->key());
 }
 
 void MainWidget::keyReleaseEvent(QKeyEvent *key)
 {
-	keys.erase(key->key());
+	holdedKeys.erase(key->key());
 }
 
 void MainWidget::resizeGL(int w, int h)
@@ -302,10 +304,10 @@ void MainWidget::resizeGL(int w, int h)
 	zNear = 0.00002, zFar = 15.0, viewAngle = 45.0;
 
 	// Reset projection
-	projection.setToIdentity();
+	stateProjection.setToIdentity();
 
 	// Set perspective projection
-	projection.perspective(viewAngle, aspect, zNear, zFar);
+	stateProjection.perspective(viewAngle, aspect, zNear, zFar);
 }
 //! [5]
 
@@ -315,33 +317,25 @@ void MainWidget::paintGL()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Calculate model view transformation
-	QMatrix4x4 matrix;
-	matrix.translate(0.0, 0.0, -1);
-	matrix.rotate(rotation);
+	QMatrix4x4 cameraRotation;
+	cameraRotation.rotate(-cameraDirection.y() / M_PI * 180, 1, 0, 0);
+	cameraRotation.rotate(cameraDirection.x() / M_PI * 180, 0, 1, 0);
 
-	QMatrix4x4 matrix_normal;
-	matrix_normal.rotate(rotation);
-
-	QMatrix4x4 shift_camera;
-	shift_camera.rotate(-camera_direct.y() / M_PI * 180, 1, 0, 0);
-	shift_camera.rotate(camera_direct.x() / M_PI * 180, 0, 1, 0);
-
-	QMatrix4x4 projectionMatrix = projection * shift_camera;
+	QMatrix4x4 currentProjection = stateProjection * cameraRotation;
 
 	programDark.bind();
-	theSun->draw(programDark, projectionMatrix, camera_pos);
-	theSky->_position = camera_pos;
-	theSky->draw(programDark, projectionMatrix, camera_pos);
-	// qDebug() << theSun->_position << theSun->radius;
+	if (!PlanetConfig::modeSurvey) {
+		theSun->draw(programDark, currentProjection, cameraPosition);
+		theSky->statePosition = cameraPosition;
+		theSky->draw(programDark, currentProjection, cameraPosition);
+	} else 
+		aSun->draw(programDark, currentProjection, cameraPosition);
+
 	programLight.bind();
-	programLight.setUniformValue("eyePos", QVector4D(camera_pos, 0));
-	programLight.setUniformValue("lightPos", QVector4D(-camera_pos, 1));
+	programLight.setUniformValue("eyePos", QVector4D(cameraPosition, 0));
+	programLight.setUniformValue("lightPos", QVector4D(-cameraPosition, 1));
 
 	// Draw cube geometry
-	// one_sphere->draw(programLight, projectionMatrix, camera_pos);
-	for (unsigned idx = 0; idx < planets.size(); ++idx) {
-		planets[idx]->draw(programLight, projectionMatrix, camera_pos);
-		// qDebug() << planets[idx]->_position << planets[idx]->radius;
-	}
-	// exit(0);
+	for (unsigned idx = 0; idx < planets.size(); ++idx)
+		planets[idx]->draw(programLight, currentProjection, cameraPosition);
 }
