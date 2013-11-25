@@ -41,6 +41,12 @@ struct SphereEngine : public BaseEngine
 	int const cnt;
 };
 
+struct ErehpsEngine : public SphereEngine
+{
+	ErehpsEngine(float radius_, int count_=30);
+	void initGeometry();
+};
+
 struct PlanetEngine : public SphereEngine
 {
 	explicit PlanetEngine(PlanetConfig::Config const &c, QGLWidget &context);

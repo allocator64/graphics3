@@ -126,6 +126,40 @@ void SphereEngine::initGeometry()
 	}
 }
 
+ErehpsEngine::ErehpsEngine(float radius_, int count_)
+	: SphereEngine(radius_, count_)
+{
+}
+
+void ErehpsEngine::initGeometry()
+{
+	vertices.resize((2*cnt + 1)*(2*cnt + 1));
+	indices.clear();
+
+	for (int i = -cnt; i <= cnt; ++i) {
+		float ksi = (.0 + i) / cnt*M_PI / 2.0;
+		float y = std::sin(ksi)*radius;
+		for (int j = 0; j <= 2*cnt; ++j) {
+			float phi = (.0 + j) / cnt*M_PI;
+			float x = std::cos(ksi)*sin(phi)*radius;
+			float z = std::cos(ksi)*cos(phi)*radius;
+			int idx = (2*cnt + 1)*(i + cnt) + j;
+			int idx2 = (2*cnt + 1)*(i + cnt - 1) + j;
+			vertices[idx].position = QVector3D(x, y, z);
+			vertices[idx].normal = QVector3D(x, y, z);
+			vertices[idx].texCoord = QVector2D(phi/(2*M_PI), (ksi+(M_PI/2.0))/M_PI);
+			if (i != -cnt && j != 2*cnt) {
+				indices.push_back(idx);
+				indices.push_back(idx + 1);
+				indices.push_back(idx2);
+				indices.push_back(idx2);
+				indices.push_back(idx2 + 1);
+				indices.push_back(idx + 1);
+			}
+		}
+	}
+}
+
 PlanetEngine::PlanetEngine(PlanetConfig::Config const &c, QGLWidget &context)
 	: SphereEngine(c.initial_inner_rad / 149597870.691)
 {

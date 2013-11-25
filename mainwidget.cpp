@@ -251,6 +251,10 @@ void MainWidget::initObjects()
 	theSun->init(QImage(":/sun"), *this);
 	theSun->_position = QVector3D(0, 0, 0);
 
+	theSky.reset(new ErehpsEngine(10)); //QImage(":/Earth.png"), *this));
+	theSky->init(QImage(":/sky"), *this);
+	theSky->_position = QVector3D(0, 0, 0);
+
 	// qDebug() << QImage(":/Earth.png");
 }
 
@@ -304,6 +308,8 @@ void MainWidget::paintGL()
 
 	programDark.bind();
 	theSun->draw(programDark, projectionMatrix, camera_pos);
+	theSky->_position = camera_pos;
+	theSky->draw(programDark, projectionMatrix, camera_pos);
 	// qDebug() << theSun->_position << theSun->radius;
 	programLight.bind();
 	programLight.setUniformValue("eyePos", QVector4D(camera_pos, 0));

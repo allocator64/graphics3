@@ -45,6 +45,7 @@ private:
 	QGLShaderProgram programDark;
     std::unique_ptr<SphereEngine> one_sphere;
     std::unique_ptr<SphereEngine> theSun;
+    std::unique_ptr<ErehpsEngine> theSky;
     std::vector<std::unique_ptr<PlanetEngine>> planets;
     
 	std::unordered_set<int> keys;
